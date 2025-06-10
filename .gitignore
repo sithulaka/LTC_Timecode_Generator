@@ -31,10 +31,7 @@ app.spec
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
-prepare_release.bat
-prepare_release.sh
-ltc_timecode_generator.md
-CHANGELOG.md
+
 
 # Unit test / coverage reports
 htmlcov/
