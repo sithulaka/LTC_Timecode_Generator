@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTC Timecode Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">
+                    <i class="fas fa-clock"></i>
+                    LTC Timecode Generator
+                </h1>
+                <p class="subtitle">Professional SMPTE Linear Time Code Generator</p>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="form-container">
+                <form id="ltcForm" class="ltc-form">
+                    <!-- Timecode Parameters Section -->
+                    <div class="section">
+                        <h2 class="section-title">
+                            <i class="fas fa-cog"></i>
+                            Timecode Parameters
+                        </h2>
+                        <p class="section-description">Define settings for your SMPTE LTC audio file.</p>
+                        
+                        <div class="form-group">
+                            <label for="startTime" class="form-label">Start Time (hh:mm:ss:ff)</label>
+                            <div class="time-inputs">
+                                <input type="number" id="hours" class="time-input" min="0" max="23" value="01" placeholder="00">
+                                <span class="time-separator">:</span>
+                                <input type="number" id="minutes" class="time-input" min="0" max="59" value="00" placeholder="00">
+                                <span class="time-separator">:</span>
+                                <input type="number" id="seconds" class="time-input" min="0" max="59" value="00" placeholder="00">
+                                <span class="time-separator">:</span>
+                                <input type="number" id="frames" class="time-input" min="0" max="29" value="00" placeholder="00">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="duration" class="form-label">Content Duration</label>
+                            <div class="duration-input">
+                                <input type="number" id="duration" class="input-field" min="1" max="120" value="10" step="0.1">
+                                <span class="duration-unit">minutes</span>
+                            </div>
+                            <p class="form-hint">Length of the main content (max 120 mins). Server may apply stricter limits based on audio format.</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="preroll" class="checkbox">
+                                <span class="checkmark"></span>
+                                Add Pre-roll
+                            </label>
+                            <p class="form-hint">Add 10 seconds of timecode before the start time</p>
+                        </div>
+                    </div>
+
+                    <!-- Output Format Section -->
+                    <div class="section">
+                        <h2 class="section-title">
+                            <i class="fas fa-file-audio"></i>
+                            Output Format
+                        </h2>
+                        
+                        <div class="form-group">
+                            <label for="frameRate" class="form-label">Frame Rate</label>
+                            <select id="frameRate" class="select-field">
+                                <option value="FR_30_NDF">30 fps NDF</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bitDepth" class="form-label">Bit Depth (WAV)</label>
+                            <select id="bitDepth" class="select-field">
+                                <option value="16">16-bit</option>
+                                <option value="24">24-bit</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sampleRate" class="form-label">Sample Rate (WAV)</label>
+                            <select id="sampleRate" class="select-field">
+                                <option value="44100">44.1 kHz</option>
+                                <option value="48000" selected>48 kHz</option>
+                                <option value="96000">96 kHz</option>
+                                <option value="192000">192 kHz</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Output Preview Section -->
+                    <div class="section">
+                        <h2 class="section-title">
+                            <i class="fas fa-file-signature"></i>
+                            Output Preview
+                        </h2>
+                        
+                        <div class="preview-container">
+                            <label class="form-label">Output Filename Preview:</label>
+                            <div class="filename-preview" id="filenamePreview">
+                                LTC_01-00-00-00_10m00s_30fps_16bit_48kHz.wav
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="section">
+                        <button type="submit" class="generate-btn" id="generateBtn">
+                            <i class="fas fa-download"></i>
+                            Generate & Download LTC
+                        </button>
+                        
+                        <div class="progress-container" id="progressContainer" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <p class="progress-text" id="progressText">Generating LTC file...</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <script src="eel.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
