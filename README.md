@@ -77,6 +77,44 @@ For Windows users, simply download `LTC_Timecode_Generator.exe` and run it direc
 
 4. **Generate the file**: Click "Generate & Download LTC" and the WAV file will be created
 
+## Development
+
+### Project Structure
+```
+LTC_Timecode_Generator/
+├── app.py                      # Eel backend application
+├── ltc_generator.py           # Core LTC generation logic
+├── requirements.txt           # Python dependencies
+├── web/                      # Frontend assets
+│   ├── index.html           # Main UI
+│   ├── styles.css           # Styling
+│   └── script.js            # Frontend logic
+└── README.md                # This file
+```
+### Development Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/sithulaka/LTC-Timecode-Generator.git
+   cd LTC-Timecode-Generator
+   ```
+
+2. **Create a virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the application**:
+   ```bash
+   python app.py
+   ```
+
 ## File Naming Convention
 
 Generated files follow this naming pattern:
@@ -150,56 +188,6 @@ For 29.97 fps and 59.94 fps drop frame formats:
 - Higher sample rates increase file size and generation time
 - 24-bit files are roughly 50% larger than 16-bit files
 
-## Development
-
-### Project Structure
-```
-LTC_Timecode_Generator/
-├── app.py                      # Eel backend application
-├── ltc_generator.py           # Core LTC generation logic
-├── requirements.txt           # Python dependencies
-├── web/                      # Frontend assets
-│   ├── index.html           # Main UI
-│   ├── styles.css           # Styling
-│   └── script.js            # Frontend logic
-└── README.md                # This file
-```
-### Development Setup
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/sithulaka/LTC-Timecode-Generator.git
-   cd LTC-Timecode-Generator
-   ```
-
-2. **Create a virtual environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the application**:
-   ```bash
-   python app.py
-   ```
-
-## License
-
-This project is provided as-is for educational and professional use. Please ensure compliance with local broadcast standards and regulations when using generated timecode in professional environments.
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-- Code follows existing style conventions
-- New features include appropriate error handling
-- Changes maintain SMPTE compliance
-- Updates to documentation as needed
-
 ## Technical Support
 
 For technical issues or questions about LTC implementation, please refer to:
@@ -221,7 +209,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License and this project is provided as-is for educational and professional use. Please ensure compliance with local broadcast standards and regulations when using generated timecode in professional environments. - see the [LICENSE](LICENSE) file for details.
 
 
 ## 🌐 Connect with me  
@@ -232,4 +220,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <a href="https://fb.com/senithu.sithulaka.7" target="blank"><img align="center" src="https://github.com/sithulaka/sithulaka/blob/main/image/icon/facebook.svg" alt="sithulaka" height="30" width="40" /></a>
 <a href="https://instagram.com/_sithulaka_" target="blank"><img align="center" src="https://github.com/sithulaka/sithulaka/blob/main/image/icon/instagram.svg" alt="sithulaka" height="30" width="40" /></a>
 </p>
-
