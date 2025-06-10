@@ -26,7 +26,6 @@ MANIFEST
 # PyInstaller
 *.manifest
 # Keep app.spec but ignore auto-generated spec files
-*.spec
 
 # Installer logs
 pip-log.txt
