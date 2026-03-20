@@ -11,6 +11,9 @@ on:
         required: true
         default: 'v1.2.0'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Create a git tag when triggered manually via workflow_dispatch
   create-tag:
@@ -145,14 +148,9 @@ jobs:
 
       - name: Create source archive
         run: |
-          tar -czf ltc-timecode-generator-source.tar.gz \
-            --exclude='.git*' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            --exclude='build' \
-            --exclude='dist' \
-            --exclude='*.exe' \
-            .
+          git archive --format=tar.gz \
+            --prefix=ltc-timecode-generator/ \
+            HEAD > ltc-timecode-generator-source.tar.gz
 
       - name: Upload source artifact
         uses: actions/upload-artifact@v4
