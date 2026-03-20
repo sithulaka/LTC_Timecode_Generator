@@ -5,114 +5,262 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to create and release (e.g. v1.2.0)'
+        required: true
+        default: 'v1.2.0'
 
 jobs:
+  # Create a git tag when triggered manually via workflow_dispatch
+  create-tag:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.create_tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create and push tag
+        id: create_tag
+        run: |
+          TAG="${{ github.event.inputs.version }}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
   build-windows:
     runs-on: windows-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-    
-    - name: Build executable
-      run: |
-        pyinstaller app.spec
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: LTC_Timecode_Generator_Windows
-        path: dist/LTC_Timecode_Generator.exe
-    
-    - name: Create Release
-      # Always run (removed tag dependency)
-      uses: softprops/action-gh-release@v1
-      with:
-        files: dist/LTC_Timecode_Generator.exe
-        generate_release_notes: true
-        draft: false
-        prerelease: false
-        # Use a dynamic tag name if not triggered by a tag
-        tag_name: ${{ github.ref == 'refs/heads/main' && 'v0.0-manual' || github.ref_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    needs: [create-tag]
+    if: always() && (needs.create-tag.result == 'success' || needs.create-tag.result == 'skipped')
 
-  build-source:
-    runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Test application
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest
-        python -m pytest tests/test_ltc_generator.py -v
-    
-    - name: Create source archive
-      run: |
-        tar -czf ltc-timecode-generator-source.tar.gz \
-          --exclude='.git*' \
-          --exclude='__pycache__' \
-          --exclude='*.pyc' \
-          --exclude='build' \
-          --exclude='dist' \
-          --exclude='*.exe' \
-          .
-    
-    - name: Upload source to release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ltc-timecode-generator-source.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: pyinstaller app.spec
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LTC_Timecode_Generator_Windows
+          path: dist/LTC_Timecode_Generator.exe
 
   build-macos:
     runs-on: macos-latest
+    needs: [create-tag]
+    if: always() && (needs.create-tag.result == 'success' || needs.create-tag.result == 'skipped')
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
 
-    - name: Build executable
-      run: pyinstaller --onefile --name LTC_Timecode_Generator --add-data "web:web" app.py
+      - name: Build executable
+        run: pyinstaller app.spec
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: LTC_Timecode_Generator_macOS
-        path: dist/LTC_Timecode_Generator
+      - name: Rename macOS binary
+        run: mv dist/LTC_Timecode_Generator dist/LTC_Timecode_Generator_macOS
 
-    - name: Upload to Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: dist/LTC_Timecode_Generator
-        tag_name: ${{ github.ref_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LTC_Timecode_Generator_macOS
+          path: dist/LTC_Timecode_Generator_macOS
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: [create-tag]
+    if: always() && (needs.create-tag.result == 'success' || needs.create-tag.result == 'skipped')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: pyinstaller app.spec
+
+      - name: Rename Linux binary
+        run: mv dist/LTC_Timecode_Generator dist/LTC_Timecode_Generator_linux
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LTC_Timecode_Generator_Linux
+          path: dist/LTC_Timecode_Generator_linux
+
+  build-source:
+    runs-on: ubuntu-latest
+    needs: [create-tag]
+    if: always() && (needs.create-tag.result == 'success' || needs.create-tag.result == 'skipped')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+          python -m pytest tests/test_ltc_generator.py -v
+
+      - name: Create source archive
+        run: |
+          tar -czf ltc-timecode-generator-source.tar.gz \
+            --exclude='.git*' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='build' \
+            --exclude='dist' \
+            --exclude='*.exe' \
+            .
+
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ltc-timecode-generator-source
+          path: ltc-timecode-generator-source.tar.gz
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-macos, build-linux, build-source]
+    if: always() && (needs.build-windows.result == 'success' || needs.build-macos.result == 'success' || needs.build-linux.result == 'success')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Determine tag name
+        id: get_tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: "LTC Timecode Generator ${{ steps.get_tag.outputs.tag }}"
+          body: |
+            ## LTC Timecode Generator ${{ steps.get_tag.outputs.tag }}
+
+            A professional SMPTE-compliant **Linear Time Code (LTC)** audio generator for broadcast and post-production. No Python installation required — just download the executable for your platform and run it.
+
+            ---
+
+            ### Downloads
+
+            | Platform | File | Notes |
+            |----------|------|-------|
+            | **Windows** | `LTC_Timecode_Generator.exe` | Self-contained Windows x64 executable |
+            | **macOS**   | `LTC_Timecode_Generator_macOS` | Self-contained macOS binary (arm64/x86_64) |
+            | **Linux**   | `LTC_Timecode_Generator_linux` | Self-contained Linux x64 binary |
+            | **Source**  | `ltc-timecode-generator-source.tar.gz` | Full source code archive |
+            | **Docs**    | `ltc_timecode_generator.md` | Technical reference documentation |
+
+            ---
+
+            ### Quick Start
+
+            1. Download the executable for your platform from the table above.
+            2. Run it — the web UI opens automatically in your default browser.
+            3. Set your timecode parameters and click **Generate & Download LTC**.
+
+            > **Linux/macOS**: You may need to make the binary executable first:
+            > ```bash
+            > chmod +x LTC_Timecode_Generator_linux   # or _macOS
+            > ./LTC_Timecode_Generator_linux
+            > ```
+
+            ---
+
+            ### Features
+
+            - **SMPTE 12M compliant** LTC audio generation (bi-phase mark / Manchester encoding)
+            - **Frame rates**: 23.976, 24, 25, 29.97 NDF/DF, 30, 50, 59.94 NDF/DF, 60 fps
+            - **Sample rates**: 44.1 kHz, 48 kHz, 96 kHz, 192 kHz
+            - **Bit depths**: 16-bit and 24-bit mono WAV output
+            - **Modern web UI** — runs a local server, opens in your browser automatically
+            - **Pre-roll support** — optional 10-second lead-in before start time
+            - **Cross-platform** — single-file executables, no dependencies needed
+
+            ---
+
+            ### Compatibility
+
+            Generated LTC files are compatible with:
+            - Avid Pro Tools
+            - Adobe Premiere Pro / After Effects
+            - DaVinci Resolve
+            - Final Cut Pro
+            - Logic Pro / Reaper
+            - Professional hardware sync generators
+
+            ---
+
+            ### Standards Compliance
+
+            - **SMPTE 12M** — Time and Control Code
+            - **IEC 60461** — Timecode for audio systems
+            - **ITU-R BR.780** — Timecode systems for broadcasting
+          files: |
+            artifacts/LTC_Timecode_Generator_Windows/LTC_Timecode_Generator.exe
+            artifacts/LTC_Timecode_Generator_macOS/LTC_Timecode_Generator_macOS
+            artifacts/LTC_Timecode_Generator_Linux/LTC_Timecode_Generator_linux
+            artifacts/ltc-timecode-generator-source/ltc-timecode-generator-source.tar.gz
+            ltc_timecode_generator.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
