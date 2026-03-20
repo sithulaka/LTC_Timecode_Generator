@@ -11,6 +11,10 @@ on:
         required: true
         default: 'v1.2.0'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -32,7 +36,10 @@ jobs:
           TAG="${{ github.event.inputs.version }}"
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          # Delete existing tag if it exists (allows re-running for the same version)
+          git push origin ":refs/tags/$TAG" 2>/dev/null || true
           git tag -a "$TAG" -m "Release $TAG"
+          # Push with [skip ci] equivalent: skip via tag ref so it won't re-trigger
           git push origin "$TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
@@ -253,11 +260,12 @@ jobs:
             - **IEC 60461** — Timecode for audio systems
             - **ITU-R BR.780** — Timecode systems for broadcasting
           files: |
-            artifacts/LTC_Timecode_Generator_Windows/LTC_Timecode_Generator.exe
+            artifacts/LTC_Timecode_Generator_Windows/*.exe
             artifacts/LTC_Timecode_Generator_macOS/LTC_Timecode_Generator_macOS
             artifacts/LTC_Timecode_Generator_Linux/LTC_Timecode_Generator_linux
-            artifacts/ltc-timecode-generator-source/ltc-timecode-generator-source.tar.gz
+            artifacts/ltc-timecode-generator-source/*.tar.gz
             ltc_timecode_generator.md
+          fail_on_unmatched_files: false
           draft: false
           prerelease: false
         env:

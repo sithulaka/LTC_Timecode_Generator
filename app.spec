@@ -1,12 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import eel as _eel
+import os as _os
+
+_eel_dir = _os.path.dirname(_eel.__file__)
 
 a = Analysis(
     ['app.py'],
     pathex=[],
     binaries=[],
-    datas=[('web', 'web')],
-    hiddenimports=['bottle_websocket'],
+    datas=[
+        ('web', 'web'),
+        (_eel_dir, 'eel'),
+    ],
+    hiddenimports=[
+        'bottle_websocket',
+        'gevent',
+        'gevent.signal',
+        'gevent.threading',
+        'gevent.event',
+        'gevent.queue',
+        'gevent._semaphore',
+        'gevent.local',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
