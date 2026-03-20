@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "ltc-timecode-generator"
+version = "1.1.0"
+description = "Professional SMPTE LTC Linear Timecode Generator"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.20.0,<3.0.0",
+    "eel>=0.14.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov", "mypy", "ruff"]
+
+[project.scripts]
+ltc-generator = "cli:main"
+ltc-gui = "app:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true

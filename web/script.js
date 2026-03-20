@@ -11,7 +11,9 @@ class LTCApp {
     async init() {
         await this.loadConfigData();
         this.setupEventListeners();
+        this.initDarkMode();
         this.updateFilenamePreview();
+        this.updateSizeEstimate();
     }
 
     async loadConfigData() {
@@ -36,7 +38,7 @@ class LTCApp {
     populateFrameRates() {
         const frameRateSelect = document.getElementById('frameRate');
         frameRateSelect.innerHTML = '';
-        
+
         this.frameRates.forEach(frameRate => {
             const option = document.createElement('option');
             option.value = frameRate.name;
@@ -51,17 +53,17 @@ class LTCApp {
     populateSampleRates() {
         const sampleRateSelect = document.getElementById('sampleRate');
         sampleRateSelect.innerHTML = '';
-        
+
         this.sampleRates.forEach(rate => {
             const option = document.createElement('option');
             option.value = rate;
-            
+
             if (rate >= 1000) {
                 option.textContent = `${(rate / 1000).toFixed(1)} kHz`;
             } else {
                 option.textContent = `${rate} Hz`;
             }
-            
+
             if (rate === 48000) {
                 option.selected = true;
             }
@@ -72,7 +74,7 @@ class LTCApp {
     populateBitDepths() {
         const bitDepthSelect = document.getElementById('bitDepth');
         bitDepthSelect.innerHTML = '';
-        
+
         this.bitDepths.forEach(depth => {
             const option = document.createElement('option');
             option.value = depth;
@@ -96,8 +98,8 @@ class LTCApp {
         inputs.forEach(inputId => {
             const element = document.getElementById(inputId);
             if (element) {
-                element.addEventListener('input', () => this.updateFilenamePreview());
-                element.addEventListener('change', () => this.updateFilenamePreview());
+                element.addEventListener('input', () => { this.updateFilenamePreview(); this.updateSizeEstimate(); });
+                element.addEventListener('change', () => { this.updateFilenamePreview(); this.updateSizeEstimate(); });
             }
         });
 
@@ -105,24 +107,42 @@ class LTCApp {
         document.getElementById('frameRate').addEventListener('change', (e) => {
             this.updateMaxFrames(e.target.value);
             this.updateFilenamePreview();
+            this.updateSizeEstimate();
         });
 
         // Preroll checkbox
-        document.getElementById('preroll').addEventListener('change', () => this.updateFilenamePreview());
+        document.getElementById('preroll').addEventListener('change', () => {
+            this.updateFilenamePreview();
+            this.updateSizeEstimate();
+        });
+
+        // Duration preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('duration').value = btn.dataset.duration;
+                this.updateFilenamePreview();
+                this.updateSizeEstimate();
+            });
+        });
+
+        // Dark mode toggle
+        document.getElementById('darkToggle').addEventListener('click', () => {
+            this.toggleDarkMode();
+        });
     }
 
     updateMaxFrames(frameRateName) {
         const framesInput = document.getElementById('frames');
-        // Get the frame rate info to determine max frames
-        const frameRate = this.frameRates.find(fr => fr.name === frameRateName);
-        if (frameRate) {
-            // Extract fps from display name and set max frames
-            const fps = parseFloat(frameRate.display.match(/[\d.]+/)[0]);
-            framesInput.max = Math.floor(fps) - 1;
-            
-            // Validate current value
-            if (parseInt(framesInput.value) > parseInt(framesInput.max)) {
-                framesInput.value = framesInput.max;
+        const maxFramesMap = {
+            'FR_23_976_NDF': 23, 'FR_24_NDF': 23, 'FR_25_NDF': 24,
+            'FR_29_97_NDF': 29, 'FR_29_97_DF': 29, 'FR_30_NDF': 29,
+            'FR_50_NDF': 49, 'FR_59_94_NDF': 59, 'FR_59_94_DF': 59, 'FR_60_NDF': 59
+        };
+        const maxFrame = maxFramesMap[frameRateName];
+        if (maxFrame !== undefined) {
+            framesInput.max = maxFrame;
+            if (parseInt(framesInput.value) > maxFrame) {
+                framesInput.value = maxFrame;
             }
         }
     }
@@ -152,14 +172,40 @@ class LTCApp {
 
         // Build filename
         let filename = `LTC_${hours}-${minutes}-${seconds}-${frames}_${durationStr}_${fpsStr}_${bitDepth}bit_${sampleRateStr}`;
-        
+
         if (preroll) {
             filename += '_preroll';
         }
-        
+
         filename += '.wav';
 
         document.getElementById('filenamePreview').textContent = filename;
+    }
+
+    updateSizeEstimate() {
+        const duration = parseFloat(document.getElementById('duration').value) * 60; // seconds
+        const sampleRate = parseInt(document.getElementById('sampleRate').value);
+        const bitDepth = parseInt(document.getElementById('bitDepth').value);
+        const preroll = document.getElementById('preroll').checked;
+
+        let totalDuration = duration;
+        if (preroll) {
+            totalDuration += 10;
+        }
+
+        // Mono WAV: duration * sampleRate * (bitDepth / 8) bytes
+        const sizeBytes = totalDuration * sampleRate * (bitDepth / 8);
+        const sizeMB = sizeBytes / 1048576;
+
+        const sizeEstimateEl = document.getElementById('sizeEstimate');
+        if (sizeEstimateEl) {
+            if (sizeMB >= 1) {
+                sizeEstimateEl.textContent = `Estimated file size: ~${sizeMB.toFixed(1)} MB`;
+            } else {
+                const sizeKB = sizeBytes / 1024;
+                sizeEstimateEl.textContent = `Estimated file size: ~${sizeKB.toFixed(0)} KB`;
+            }
+        }
     }
 
     async generateLTC() {
@@ -169,13 +215,12 @@ class LTCApp {
         const progressText = document.getElementById('progressText');
 
         try {
-            // Disable button and show progress
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<i class="fas fa-spinner loading"></i> Generating...';
-            progressContainer.style.display = 'block';
-
-            // Simulate progress
-            this.animateProgress(progressFill, progressText);
+            // Validate inputs before proceeding
+            const errors = this.validateInputs();
+            if (errors.length > 0) {
+                this.showToast(errors.join(', '), 'error');
+                return;
+            }
 
             // Get form values
             const hours = parseInt(document.getElementById('hours').value);
@@ -187,6 +232,20 @@ class LTCApp {
             const bitDepth = parseInt(document.getElementById('bitDepth').value);
             const sampleRate = parseInt(document.getElementById('sampleRate').value);
             const preroll = document.getElementById('preroll').checked;
+
+            // Confirmation for long generations
+            if (duration > 600) {
+                const size = Math.round(duration * sampleRate * (bitDepth / 8) / 1048576);
+                if (!confirm(`This will generate ~${size} MB of audio (${Math.round(duration/60)} min). Continue?`)) return;
+            }
+
+            // Disable button and show progress
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner loading" aria-hidden="true"></i> Generating...';
+            progressContainer.style.display = 'block';
+
+            // Simulate progress
+            this.animateProgress(progressFill, progressText);
 
             // Adjust duration for preroll
             let actualDuration = duration;
@@ -205,7 +264,12 @@ class LTCApp {
                 startHours = Math.floor(totalSeconds / 3600);
                 startMinutes = Math.floor((totalSeconds % 3600) / 60);
                 startSeconds = totalSeconds % 60;
-                // Keep the same frame for simplicity
+                startFrames = frames;  // Preserve original frame offset
+            }
+
+            if (actualDuration > 7200) {
+                this.showToast('Error: Duration with preroll exceeds 2 hour maximum', 'error');
+                return;
             }
 
             // Generate filename
@@ -220,12 +284,12 @@ class LTCApp {
             )();
 
             if (result.success) {
-                progressFill.style.width = '100%';
+                progressFill.value = 100;
                 progressText.textContent = 'Generation complete!';
-                
+
                 // Show success message
                 this.showToast(`LTC file generated successfully: ${filename}`, 'success');
-                
+
                 // Trigger download
                 this.downloadFile(outputPath, filename);
             } else {
@@ -239,68 +303,36 @@ class LTCApp {
             // Reset button and hide progress
             setTimeout(() => {
                 generateBtn.disabled = false;
-                generateBtn.innerHTML = '<i class="fas fa-download"></i> Generate & Download LTC';
+                generateBtn.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i> Generate & Download LTC';
                 progressContainer.style.display = 'none';
-                progressFill.style.width = '0%';
+                progressFill.value = 0;
             }, 2000);
         }
     }
 
     async getOutputPath(filename) {
-        // For web environment, we'll use a default path
-        // In a real implementation, you might want to use the browser's download folder
         try {
             const defaultPath = await eel.get_default_output_path()();
-            // Replace the default filename with our generated filename
-            return defaultPath.replace(/[^\/\\]*\.wav$/, filename);
+            const result = defaultPath.replace(/[^\/\\]*\.wav$/, filename);
+            if (result === defaultPath) {
+                // Regex didn't match — construct path by joining directory + filename
+                const separator = defaultPath.includes('\\') ? '\\' : '/';
+                const dir = defaultPath.substring(0, defaultPath.lastIndexOf(separator) + 1);
+                return dir ? dir + filename : filename;
+            }
+            return result;
         } catch (error) {
-            // Fallback to current directory
             return `./${filename}`;
         }
     }
 
     downloadFile(filePath, filename) {
-        // In a web environment, we need to handle file download differently
-        // This is a simplified approach - in production, you'd want to serve the file via HTTP
-        
-        // Create a temporary link for download
-        const link = document.createElement('a');
-        link.style.display = 'none';
-        
-        // For local files, we can use the file:// protocol (with limitations)
-        // In production, you'd serve the file via a web server
-        try {
-            link.href = `file://${filePath}`;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (error) {
-            console.warn('Direct file download not supported, file saved to:', filePath);
-        }
+        this.showToast('File saved to: ' + filePath, 'success');
     }
 
     animateProgress(progressFill, progressText) {
-        const steps = [
-            { progress: 20, text: 'Initializing LTC generator...' },
-            { progress: 40, text: 'Generating timecode data...' },
-            { progress: 60, text: 'Encoding bi-phase mark audio...' },
-            { progress: 80, text: 'Creating WAV file...' },
-            { progress: 95, text: 'Finalizing output...' }
-        ];
-
-        let currentStep = 0;
-        const animate = () => {
-            if (currentStep < steps.length) {
-                const step = steps[currentStep];
-                progressFill.style.width = `${step.progress}%`;
-                progressText.textContent = step.text;
-                currentStep++;
-                setTimeout(animate, 800);
-            }
-        };
-
-        animate();
+        progressFill.value = 50;
+        progressText.textContent = 'Generating...';
     }
 
     showToast(message, type = 'info') {
@@ -309,9 +341,35 @@ class LTCApp {
         toast.className = `toast ${type}`;
         toast.classList.add('show');
 
+        toast.addEventListener('click', () => toast.classList.remove('show'), { once: true });
+
         setTimeout(() => {
             toast.classList.remove('show');
-        }, 5000);
+        }, 8000);
+    }
+
+    // Dark mode
+    initDarkMode() {
+        const darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+            this.updateDarkToggleIcon(true);
+        }
+    }
+
+    toggleDarkMode() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', isDark);
+        this.updateDarkToggleIcon(isDark);
+    }
+
+    updateDarkToggleIcon(isDark) {
+        const toggle = document.getElementById('darkToggle');
+        if (toggle) {
+            toggle.innerHTML = isDark
+                ? '<i class="fas fa-sun" aria-hidden="true"></i>'
+                : '<i class="fas fa-moon" aria-hidden="true"></i>';
+        }
     }
 
     // Utility function to format time
